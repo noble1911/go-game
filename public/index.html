@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Go</title>
+  <meta name="description" content="Play Go against the computer, pass and play on one screen, or online against a friend.">
+  <meta name="theme-color" content="#1d1a16">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <!-- ── Menu ─────────────────────────────────────────────────────────── -->
+  <main id="menu" class="screen">
+    <header class="hero">
+      <div class="hero-stones" aria-hidden="true"><span class="s b"></span><span class="s w"></span></div>
+      <h1>Go</h1>
+      <p class="sub">囲碁 · Weiqi · Baduk</p>
+    </header>
+
+    <div id="resume-list" class="resume-list"></div>
+
+    <nav class="modes">
+      <button class="mode" data-mode="solo">
+        <span class="mode-icon" aria-hidden="true">●○</span>
+        <span class="mode-name">Play the computer</span>
+        <span class="mode-desc">Beginner to hard, on 9×9, 13×13 or 19×19</span>
+      </button>
+      <button class="mode" data-mode="local">
+        <span class="mode-icon" aria-hidden="true">●●</span>
+        <span class="mode-name">Pass &amp; play</span>
+        <span class="mode-desc">Two players, one screen</span>
+      </button>
+      <button class="mode" data-mode="online">
+        <span class="mode-icon" aria-hidden="true">●⇄○</span>
+        <span class="mode-name">Play online</span>
+        <span class="mode-desc">Send a friend a code or a link</span>
+      </button>
+    </nav>
+
+    <details class="rules">
+      <summary>How to play</summary>
+      <ol>
+        <li>Black and White take turns placing a stone on an empty intersection. Black goes first.</li>
+        <li>A group of stones is <b>captured</b> when the other colour fills its last liberty (adjacent empty point).</li>
+        <li>You can't play where your stone would have no liberties, unless it captures.</li>
+        <li><b>Ko:</b> you can't recreate an earlier position, so a single-stone recapture must wait a move.</li>
+        <li>When both players pass in a row, mark the dead stones and count. Your score is your stones plus the empty points only you surround; White gets <b>komi</b> for moving second.</li>
+      </ol>
+    </details>
+  </main>
+
+  <!-- ── Setup ────────────────────────────────────────────────────────── -->
+  <main id="setup" class="screen" hidden>
+    <header class="bar">
+      <button class="icon-btn" data-action="menu" aria-label="Back to menu">←</button>
+      <h2 id="setup-title">New game</h2>
+    </header>
+
+    <form id="setup-form" class="card setup">
+      <fieldset class="field" data-for="online">
+        <label for="name">Your name</label>
+        <input id="name" name="name" maxlength="20" autocomplete="nickname" placeholder="Player">
+      </fieldset>
+
+      <fieldset class="field">
+        <legend>Board</legend>
+        <div class="seg" role="radiogroup">
+          <label><input type="radio" name="size" value="9" checked><span>9×9</span></label>
+          <label><input type="radio" name="size" value="13"><span>13×13</span></label>
+          <label><input type="radio" name="size" value="19"><span>19×19</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="field" data-for="solo">
+        <legend>Computer</legend>
+        <div class="seg" role="radiogroup">
+          <label><input type="radio" name="level" value="beginner"><span>Beginner</span></label>
+          <label><input type="radio" name="level" value="easy" checked><span>Easy</span></label>
+          <label><input type="radio" name="level" value="medium"><span>Medium</span></label>
+          <label><input type="radio" name="level" value="hard"><span>Hard</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="field" data-for="solo online">
+        <legend>You play</legend>
+        <div class="seg" role="radiogroup">
+          <label><input type="radio" name="color" value="black" checked><span>● Black</span></label>
+          <label><input type="radio" name="color" value="white"><span>○ White</span></label>
+          <label><input type="radio" name="color" value="random"><span>Random</span></label>
+        </div>
+      </fieldset>
+
+      <div class="row">
+        <fieldset class="field">
+          <label for="handicap">Handicap</label>
+          <select id="handicap" name="handicap"></select>
+        </fieldset>
+        <fieldset class="field">
+          <label for="komi">Komi</label>
+          <input id="komi" name="komi" type="number" step="0.5" min="-50" max="50" value="7.5" inputmode="decimal">
+        </fieldset>
+      </div>
+
+      <button type="submit" class="btn primary big" id="setup-start">Start</button>
+    </form>
+
+    <section class="card join" data-for="online">
+      <h3>Join a friend</h3>
+      <form id="join-form" class="join-row">
+        <input id="join-code" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Game code">
+        <button type="submit" class="btn">Join</button>
+      </form>
+      <h3>Open games</h3>
+      <ul id="open-rooms" class="open-rooms"><li class="muted">Looking…</li></ul>
+    </section>
+  </main>
+
+  <!-- ── Game ─────────────────────────────────────────────────────────── -->
+  <main id="game" class="screen" hidden>
+    <header class="bar">
+      <button class="icon-btn" data-action="menu" aria-label="Back to menu">←</button>
+      <h2 id="game-title">Go</h2>
+      <button class="icon-btn" id="sound-toggle" aria-label="Sound on" title="Sound">♪</button>
+      <button class="icon-btn" id="coords-toggle" aria-label="Show coordinates" title="Coordinates">#</button>
+    </header>
+
+    <div class="table">
+      <div class="board-wrap">
+        <canvas id="board" aria-label="Go board"></canvas>
+        <div id="waiting" class="overlay" hidden>
+          <div class="card waiting">
+            <p class="muted">Waiting for your opponent</p>
+            <p class="code" id="waiting-code">····</p>
+            <p>Send them this code, or the link:</p>
+            <div class="invite">
+              <button class="btn primary" id="copy-link">Copy invite link</button>
+              <button class="btn" id="share-link" hidden>Share…</button>
+            </div>
+            <button class="btn ghost" data-action="leave">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="players">
+          <div class="player" id="player-black">
+            <span class="stone b" aria-hidden="true"></span>
+            <div class="pinfo"><span class="pname">Black</span><span class="pmeta"></span></div>
+            <span class="pcap" title="Stones captured">0</span>
+          </div>
+          <div class="player" id="player-white">
+            <span class="stone w" aria-hidden="true"></span>
+            <div class="pinfo"><span class="pname">White</span><span class="pmeta"></span></div>
+            <span class="pcap" title="Stones captured">0</span>
+          </div>
+        </div>
+
+        <p id="status" class="status" aria-live="polite"></p>
+
+        <div id="controls-play" class="controls">
+          <button class="btn" id="btn-pass">Pass</button>
+          <button class="btn" id="btn-undo">Undo</button>
+          <button class="btn danger" id="btn-resign">Resign</button>
+        </div>
+
+        <div id="controls-score" class="controls score" hidden>
+          <p class="hint">Tap a group to mark it dead or alive. Territory is shaded.</p>
+          <div class="score-line" id="score-line"></div>
+          <div class="row">
+            <button class="btn primary" id="btn-accept">Accept count</button>
+            <button class="btn" id="btn-resume">Resume play</button>
+          </div>
+        </div>
+
+        <div id="controls-over" class="controls over" hidden>
+          <p class="result" id="result"></p>
+          <div class="row">
+            <button class="btn primary" id="btn-again">Play again</button>
+            <button class="btn" data-action="menu">Menu</button>
+          </div>
+        </div>
+
+        <p class="room-code" id="room-code" hidden></p>
+      </aside>
+    </div>
+  </main>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <dialog id="confirm">
+    <form method="dialog">
+      <p id="confirm-text"></p>
+      <div class="row">
+        <button value="cancel" class="btn">Cancel</button>
+        <button value="ok" class="btn danger" id="confirm-ok">OK</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

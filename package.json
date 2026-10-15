@@ -1,0 +1,23 @@
+{
+  "name": "go-game",
+  "version": "1.0.0",
+  "description": "Go (the board game): play the computer, pass and play, or online against a friend",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "PORT=3000 node --watch server.js",
+    "test": "node --test test/*.test.js",
+    "e2e": "node e2e/smoke.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^24.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

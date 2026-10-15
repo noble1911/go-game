@@ -1,0 +1,15 @@
+# On the home server: `git pull && docker compose up -d --build` from ~/go-game.
+# Played at games.noblehaus.uk/go/ (through the games gateway) or http://192.168.1.117:3008/ on the LAN.
+services:
+  go-game:
+    build: .
+    container_name: go-game
+    ports:
+      - "3008:3000"
+    networks:
+      - homeserver
+    restart: unless-stopped
+
+networks:
+  homeserver:
+    external: true
